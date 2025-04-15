@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { FirebaseError } from 'firebase/app';
 import Link from 'next/link';
@@ -11,8 +11,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, isAdmin } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '/admin';
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      router.push(redirectTo);
+    }
+  }, [user, isAdmin, router, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +29,6 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      router.push('/admin');
     } catch (err) {
       const firebaseError = err as FirebaseError;
       console.error('Login error:', firebaseError);

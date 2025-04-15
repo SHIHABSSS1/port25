@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  environment = { BUILD_STEP = "true" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -22,4 +23,12 @@
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept" 
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept"
+
+# Handle SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+  conditions = {Role = ["admin"]} 
