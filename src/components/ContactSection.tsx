@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Contact } from '../types';
 import { FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';

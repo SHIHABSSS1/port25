@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Social } from '../types';
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaFacebook, FaGlobe } from 'react-icons/fa';

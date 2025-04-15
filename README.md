@@ -42,6 +42,7 @@ A modern portfolio website for Shihab Hossain, an Electronics Engineer and Web D
    npm install
    # or
    yarn install
+   npm install cloudinary next-cloudinary
    ```
 
 3. Create a `.env.local` file with your Firebase configuration
@@ -49,40 +50,78 @@ A modern portfolio website for Shihab Hossain, an Electronics Engineer and Web D
    # Copy the example file
    cp .env.local.example .env.local
    # Edit with your Firebase details
+   NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCpbQWLfQEhO7HuqgZEzUr0VhOldbyvt9w
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=shihab-portfolio-582e8.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=shihab-portfolio-582e8
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=shihab-portfolio-582e8.firebasestorage.app
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=495857341508
+   NEXT_PUBLIC_FIREBASE_APP_ID=1:495857341508:web:dd4e14f4d0602d2f9d5811
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=portfolio
+   CLOUDINARY_API_KEY=515638874541828
+   CLOUDINARY_API_SECRET=m9gsJdbL2jhfar4Czt2tfI5qwKg
    ```
 
 4. Start the development server
    ```
    npm run dev
-   # or
-   yarn dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Deployment
+## Cloudinary Integration
 
-The website can be deployed to Netlify using GitHub integration:
+Create a file at `src/app/api/upload-image/route.ts`:
 
-1. Push your code to GitHub
-2. Connect your GitHub repository to Netlify
-3. Configure build settings:
-   - Build command: `npm run build`
-   - Publish directory: `.next`
-4. Add your environment variables in Netlify settings
+```typescript
+import { v2 as cloudinary } from 'cloudinary';
+import { NextResponse } from 'next/server';
 
-## Admin Access
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
-To access the admin panel:
+export async function POST(request: Request) {
+  try {
+    const { image, folder } = await request.json();
 
-1. Go to `/login` route
-2. Log in with your admin credentials
-3. You will be redirected to the admin dashboard where you can update all content
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(image, {
+      folder: `portfolio/${folder}`
+    });
 
-## License
+    return NextResponse.json({ 
+      url: result.secure_url,
+      public_id: result.public_id
+    });
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    return NextResponse.json(
+      { message: 'Error uploading image' },
+      { status: 500 }
+    );
+  }
+}
+```
 
-This project is licensed under the MIT License - see the LICENSE file for details
+This file sets up a serverless function to handle image uploads to Cloudinary.
 
-## Contact
+## Cloudinary Utility File
 
-Shihab Hossain - shihabhossain596@gmail.com
+Create `src/lib/cloudinary.ts`:
+
+```typescript
+import { uploadImage as cloudinaryUpload } from './cloudinary';
+
+export async function uploadImage(file: File, path: string): Promise<string> {
+  try {
+    const url = await cloudinaryUpload(file, path);
+    return url;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+}
+```
