@@ -2,6 +2,7 @@ import { db, storage } from './firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { SiteContent } from '../types';
+import { changelog } from '../data/changelog';
 
 // Default content structure
 export const defaultContent: SiteContent = {
@@ -71,7 +72,8 @@ export const defaultContent: SiteContent = {
     email: 'shihabhossain596@gmail.com',
     phone: '01745368299',
     address: 'Bangladesh'
-  }
+  },
+  changelog: changelog
 };
 
 // Get site content

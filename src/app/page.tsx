@@ -7,6 +7,7 @@ import ExperienceSection from '../components/ExperienceSection';
 import ProjectsSection from '../components/ProjectsSection';
 import SocialSection from '../components/SocialSection';
 import ContactSection from '../components/ContactSection';
+import ChangelogSection from '../components/ChangelogSection';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 import { getSiteContent } from '../lib/firestore';
@@ -49,6 +50,7 @@ export default function Home() {
       <ProjectsSection projects={content.projects} />
       <SocialSection socials={content.socials} />
       <ContactSection contact={content.contact} />
+      <ChangelogSection initialItemsToShow={1} />
       <Footer socials={content.socials} />
     </div>
   );

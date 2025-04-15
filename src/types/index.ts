@@ -1,3 +1,5 @@
+import { ChangelogItem } from '../data/changelog';
+
 export interface Hero {
   title: string;
   subtitle: string;
@@ -57,4 +59,5 @@ export interface SiteContent {
   projects: Project[];
   socials: Social[];
   contact: Contact;
+  changelog: ChangelogItem[];
 } 
