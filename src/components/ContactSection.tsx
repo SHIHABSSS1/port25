@@ -182,7 +182,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
               
               {submitSuccess && (
                 <p className="text-green-600 dark:text-green-400">
-                  Your message has been sent successfully! I'll get back to you soon.
+                  Your message has been sent successfully! I&apos;ll get back to you soon.
                 </p>
               )}
               

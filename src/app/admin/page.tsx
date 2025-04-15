@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { FaArrowLeft, FaImage, FaSave } from 'react-icons/fa';
 
 export default function AdminPage() {
-  const { user, loading, isAdmin } = useAuth();
+  const { loading, isAdmin } = useAuth();
   const router = useRouter();
   const [content, setContent] = useState<SiteContent | null>(null);
   const [activeTab, setActiveTab] = useState('hero');

@@ -4,8 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
-  signOut as firebaseSignOut,
-  User as FirebaseUser
+  signOut as firebaseSignOut
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -27,25 +26,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Skip authentication in server-side rendering
+    if (typeof window === 'undefined' || !auth) {
+      setLoading(false);
+      return () => {};
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<User, 'uid'>;
-          const user: User = {
-            uid: firebaseUser.uid,
-            ...userData
-          };
-          setUser(user);
-          setIsAdmin(user.role === 'admin');
-        } else {
-          // If user document doesn't exist, set default user
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            role: 'user'
-          });
-          setIsAdmin(false);
+        if (db) {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as Omit<User, 'uid'>;
+            const user: User = {
+              uid: firebaseUser.uid,
+              ...userData
+            };
+            setUser(user);
+            setIsAdmin(user.role === 'admin');
+          } else {
+            // If user document doesn't exist, set default user
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: 'user'
+            });
+            setIsAdmin(false);
+          }
         }
       } else {
         setUser(null);
@@ -59,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      if (!auth) throw new Error('Authentication not initialized');
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       console.error('Error signing in:', error);
@@ -68,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      if (!auth) throw new Error('Authentication not initialized');
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
