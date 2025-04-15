@@ -9,12 +9,13 @@ import Link from 'next/link';
 import { FaArrowLeft, FaImage, FaSave } from 'react-icons/fa';
 
 export default function AdminPage() {
-  const { loading, isAdmin } = useAuth();
+  const { loading, user, isAdmin } = useAuth();
   const router = useRouter();
   const [content, setContent] = useState<SiteContent | null>(null);
   const [activeTab, setActiveTab] = useState('hero');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [authDebug, setAuthDebug] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -30,10 +31,27 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/login');
+    // Add debug info to help troubleshoot
+    if (loading) {
+      setAuthDebug('Loading authentication state...');
+    } else if (!user) {
+      setAuthDebug('Not logged in. Redirecting to login page...');
+      // Add a small delay before redirecting
+      const timer = setTimeout(() => {
+        router.push('/login?redirectTo=/admin');
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (!isAdmin) {
+      setAuthDebug('User logged in but not an admin. Redirecting to login page...');
+      // Add a small delay before redirecting
+      const timer = setTimeout(() => {
+        router.push('/login?redirectTo=/admin');
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setAuthDebug('User is authenticated and has admin rights.');
     }
-  }, [loading, isAdmin, router]);
+  }, [loading, user, isAdmin, router]);
 
   const handleSave = async () => {
     if (!content) return;
@@ -155,14 +173,28 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex flex-col justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading authentication state...</p>
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return null; // Will redirect in useEffect
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-400 text-blue-800 dark:text-blue-400 rounded-md p-4 max-w-md">
+          <h2 className="text-lg font-medium mb-2">Authentication Required</h2>
+          <p className="mb-4">{authDebug || 'You need to be logged in as an admin to access this page.'}</p>
+          <Link
+            href="/login?redirectTo=/admin"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!content) {
