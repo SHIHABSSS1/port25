@@ -58,7 +58,10 @@ const Navbar: React.FC = () => {
                 Sign Out
               </button>
             ) : (
-              <Link href="/login?redirectTo=/admin" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
+              <Link 
+                href="/login?redirectTo=/admin" 
+                className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium"
+              >
                 Sign In
               </Link>
             )}

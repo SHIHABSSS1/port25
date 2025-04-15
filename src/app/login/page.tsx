@@ -9,37 +9,42 @@ import Link from 'next/link';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { signIn, user, isAdmin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/admin';
+  const redirectTo = searchParams.get('redirectTo') || '/';
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user) {
       router.push(redirectTo);
     }
-  }, [user, isAdmin, router, redirectTo]);
+  }, [user, router, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setLoading(true);
-
+    
     try {
       await signIn(email, password);
-    } catch (err) {
-      const firebaseError = err as FirebaseError;
-      console.error('Login error:', firebaseError);
+      // No need to redirect here as useEffect will handle it
+    } catch (error: any) {
+      let errorMessage = 'Failed to login';
       
-      if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password') {
-        setError('Invalid email or password');
-      } else if (firebaseError.code === 'auth/too-many-requests') {
-        setError('Too many failed login attempts. Please try again later.');
-      } else {
-        setError('Failed to log in. Please try again.');
+      // Handle Firebase error codes
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email format';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
