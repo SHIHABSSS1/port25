@@ -82,15 +82,20 @@ export async function getSiteContent(): Promise<SiteContent> {
       return defaultContent;
     }
     
-    const docRef = doc(db, 'site', 'content');
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return docSnap.data() as SiteContent;
+    try {
+      const docRef = doc(db, 'site', 'content');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return docSnap.data() as SiteContent;
+      }
+    } catch (error) {
+      console.error('Firestore permission error, using default content', error);
+      // Fall through to use default content
     }
     
-    // If no content exists, create default content
-    await setDoc(docRef, defaultContent);
+    // If content doesn't exist or there was an error, use default
+    // Don't try to write to Firestore if there was a permissions error
     return defaultContent;
   } catch (error) {
     console.error('Error getting site content:', error);

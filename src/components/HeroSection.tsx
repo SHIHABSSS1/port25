@@ -51,6 +51,15 @@ const HeroSection: React.FC<HeroSectionProps> = ({ hero }) => {
                   fill
                   priority={index === 0}
                   className="object-cover"
+                  onError={(e) => {
+                    // On error, replace with a colored background
+                    const target = e.target as HTMLImageElement;
+                    if (target && target.parentElement) {
+                      target.style.display = 'none';
+                      target.parentElement.classList.add('bg-indigo-800');
+                    }
+                  }}
+                  unoptimized={process.env.NODE_ENV === 'production'} // For Netlify
                 />
               ) : (
                 <div className="bg-gray-700 h-full w-full" />
