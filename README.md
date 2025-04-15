@@ -21,6 +21,7 @@ A modern portfolio website for Shihab Hossain, an Electronics Engineer and Web D
 - **React Slick**: For image carousel functionality
 - **React Hook Form**: For form handling and validation
 - **Framer Motion**: For smooth animations and transitions
+- **Netlify**: For deployment and hosting
 
 ## Getting Started
 
@@ -67,6 +68,16 @@ A modern portfolio website for Shihab Hossain, an Electronics Engineer and Web D
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Deployment with Netlify
+
+This project is configured for deployment on Netlify. The `netlify.toml` file in the root directory contains all the necessary configuration.
+
+To deploy:
+
+1. Push your code to GitHub
+2. Connect your GitHub repository to Netlify
+3. Netlify will automatically deploy your site when you push changes
 
 ## Cloudinary Integration
 
