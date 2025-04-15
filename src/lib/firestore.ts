@@ -91,11 +91,17 @@ export async function getSiteContent(): Promise<SiteContent> {
       }
     } catch (error) {
       console.error('Firestore permission error, using default content', error);
+      // Try to detect if this is a CORS or network issue
+      if (error instanceof Error && 
+         (error.message.includes('insufficient permissions') || 
+          error.message.includes('network error') ||
+          error.message.includes('ERR_BLOCKED'))) {
+        console.warn('CORS or network issue detected, using local content');
+      }
       // Fall through to use default content
     }
     
     // If content doesn't exist or there was an error, use default
-    // Don't try to write to Firestore if there was a permissions error
     return defaultContent;
   } catch (error) {
     console.error('Error getting site content:', error);
