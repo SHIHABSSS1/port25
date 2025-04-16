@@ -51,6 +51,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ hero }) => {
                   fill
                   priority={index === 0}
                   className="object-cover"
+                  sizes="100vw"
+                  quality={75}
                   onError={(e) => {
                     // On error, replace with a colored background
                     const target = e.target as HTMLImageElement;
@@ -59,7 +61,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ hero }) => {
                       target.parentElement.classList.add('bg-indigo-800');
                     }
                   }}
-                  unoptimized={process.env.NODE_ENV === 'production'} // For Netlify
                 />
               ) : (
                 <div className="bg-gray-700 h-full w-full" />
@@ -70,7 +71,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ hero }) => {
       </div>
 
       {/* Content overlay */}
-      <div className="relative z-10 h-full flex items-center justify-center">
+      <div className="relative z-10 h-full flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

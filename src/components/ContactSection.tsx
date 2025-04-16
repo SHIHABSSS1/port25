@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Contact } from '../types';
 import { FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
+import emailjs from '@emailjs/browser';
 
 interface ContactSectionProps {
   contact: Contact;
@@ -17,24 +18,52 @@ type FormData = {
 };
 
 const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+  const { 
+    register, 
+    handleSubmit, 
+    reset, 
+    formState: { errors, touchedFields, isSubmitted } 
+  } = useForm<FormData>({
+    mode: 'onTouched'
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const form = useRef<HTMLFormElement>(null);
+
+  // Initialize EmailJS on component mount
+  useEffect(() => {
+    emailjs.init('ej90EMXzV9wejaMPf');
+  }, []);
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setSubmitError('');
     
     try {
-      // In a real implementation, you would send this data to an API
-      console.log('Form data:', data);
-      
-      // Simulate API request
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSubmitSuccess(true);
-      reset();
+      if (!form.current) return;
+
+      // Create a template params object manually instead of relying on form names
+      const templateParams = {
+        from_name: data.name,
+        from_email: data.email,
+        message: data.message,
+        to_email: contact.email
+      };
+
+      // Use send method instead of sendForm
+      const result = await emailjs.send(
+        'service_asoeouv',
+        'template_eymrmhd',
+        templateParams
+      );
+
+      if (result.text === 'OK') {
+        setSubmitSuccess(true);
+        reset();
+      } else {
+        throw new Error('Failed to send message');
+      }
     } catch (error) {
       setSubmitError('There was an error submitting your message. Please try again.');
       console.error('Error submitting form:', error);
@@ -115,7 +144,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
           >
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Send Me a Message</h3>
             
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form ref={form} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Name
@@ -127,7 +156,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
                   placeholder="Your Name"
                   {...register('name', { required: 'Name is required' })}
                 />
-                {errors.name && (
+                {(touchedFields.name || isSubmitted) && errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
                 )}
               </div>
@@ -149,7 +178,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
                     }
                   })}
                 />
-                {errors.email && (
+                {(touchedFields.email || isSubmitted) && errors.email && (
                   <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                 )}
               </div>
@@ -165,7 +194,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
                   placeholder="Your message here..."
                   {...register('message', { required: 'Message is required' })}
                 />
-                {errors.message && (
+                {(touchedFields.message || isSubmitted) && errors.message && (
                   <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
                 )}
               </div>

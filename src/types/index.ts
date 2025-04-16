@@ -44,6 +44,9 @@ export interface Contact {
   email: string;
   phone: string;
   address: string;
+  showEmail?: boolean;
+  showPhone?: boolean;
+  showAddress?: boolean;
 }
 
 export interface User {
@@ -52,10 +55,17 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+export interface Gallery {
+  title: string;
+  description: string;
+  images: string[];
+}
+
 export interface SiteContent {
   hero: Hero;
   about: About;
   experiences: Experience[];
+  gallery: Gallery;
   projects: Project[];
   socials: Social[];
   contact: Contact;

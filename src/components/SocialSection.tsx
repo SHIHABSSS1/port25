@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Social } from '../types';
-import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaFacebook, FaGlobe } from 'react-icons/fa';
+import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaFacebook, FaGlobe, FaWhatsapp, FaTelegram } from 'react-icons/fa';
+import { SiSignal } from 'react-icons/si';
 import { motion } from 'framer-motion';
 
 interface SocialSectionProps {
@@ -22,6 +23,12 @@ const SocialSection: React.FC<SocialSectionProps> = ({ socials }) => {
         return <FaInstagram className="text-4xl" />;
       case 'facebook':
         return <FaFacebook className="text-4xl" />;
+      case 'whatsapp':
+        return <FaWhatsapp className="text-4xl" />;
+      case 'signal':
+        return <SiSignal className="text-4xl" />;
+      case 'telegram':
+        return <FaTelegram className="text-4xl" />;
       default:
         return <FaGlobe className="text-4xl" />;
     }

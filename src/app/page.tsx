@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import HeroSection from '../components/HeroSection';
 import AboutSection from '../components/AboutSection';
 import ExperienceSection from '../components/ExperienceSection';
+import GallerySection from '../components/GallerySection';
 import ProjectsSection from '../components/ProjectsSection';
 import SocialSection from '../components/SocialSection';
 import ContactSection from '../components/ContactSection';
@@ -22,6 +23,12 @@ export default function Home() {
     const fetchContent = async () => {
       try {
         const siteContent = await getSiteContent();
+        
+        // Ensure gallery property exists in the fetched content
+        if (!siteContent.gallery) {
+          siteContent.gallery = defaultContent.gallery;
+        }
+        
         setContent(siteContent);
       } catch (error) {
         console.error('Error fetching content:', error);
@@ -47,6 +54,7 @@ export default function Home() {
       <HeroSection hero={content.hero} />
       <AboutSection about={content.about} />
       <ExperienceSection experiences={content.experiences} />
+      <GallerySection gallery={content.gallery} />
       <ProjectsSection projects={content.projects} />
       <SocialSection socials={content.socials} />
       <ContactSection contact={content.contact} />

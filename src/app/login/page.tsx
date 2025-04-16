@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { FirebaseError } from 'firebase/app';
 import Link from 'next/link';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -14,14 +13,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
-  const { signIn, user, isAdmin } = useAuth();
+  const { signIn, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/';
 
   useEffect(() => {
-    // Debug information to help troubleshoot
-    if (user) {
+    // Only redirect automatically if we're not coming from the admin page
+    if (user && redirectTo !== '/admin') {
       setDebugInfo(`User authenticated. Redirecting to: ${redirectTo}`);
       
       // Force a small delay to ensure state is properly updated
@@ -42,18 +41,22 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       setDebugInfo('Login successful, waiting for redirect...');
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Failed to login';
       
       // Handle Firebase error codes
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email format';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.';
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const firebaseError = error as { code: string; message?: string };
+        
+        if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password') {
+          errorMessage = 'Invalid email or password';
+        } else if (firebaseError.code === 'auth/invalid-email') {
+          errorMessage = 'Invalid email format';
+        } else if (firebaseError.code === 'auth/too-many-requests') {
+          errorMessage = 'Too many failed login attempts. Please try again later.';
+        } else if (firebaseError.message) {
+          errorMessage = firebaseError.message;
+        }
       }
       
       setError(errorMessage);

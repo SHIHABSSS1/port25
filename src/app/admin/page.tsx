@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { getSiteContent, updateSiteContent, uploadImage } from '../../lib/firestore';
-import { SiteContent } from '../../types';
+import { SiteContent, Social, Contact, Experience, Project } from '../../types';
 import Link from 'next/link';
 import { FaArrowLeft, FaImage, FaSave } from 'react-icons/fa';
+import { ChangelogItem } from '../../data/changelog';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function AdminPage() {
   const { loading, user, isAdmin } = useAuth();
@@ -16,6 +18,30 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [authDebug, setAuthDebug] = useState<string | null>(null);
+  const [newChangelogItem, setNewChangelogItem] = useState<ChangelogItem>({
+    date: new Date().toISOString().split('T')[0],
+    version: '',
+    title: '',
+    changes: ['']
+  });
+  const [newSocial, setNewSocial] = useState<{platform: string; link: string}>({
+    platform: '',
+    link: ''
+  });
+  const [newExperience, setNewExperience] = useState<Omit<Experience, 'id'>>({
+    company: '',
+    position: '',
+    duration: '',
+    description: ''
+  });
+  const [newProject, setNewProject] = useState<Omit<Project, 'id'>>({
+    title: '',
+    description: '',
+    image: '',
+    tags: [],
+    link: '',
+    github: ''
+  });
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -52,6 +78,20 @@ export default function AdminPage() {
       setAuthDebug('User is authenticated and has admin rights.');
     }
   }, [loading, user, isAdmin, router]);
+
+  useEffect(() => {
+    // Initialize the gallery property if it doesn't exist in the fetched content
+    if (content && !content.gallery) {
+      setContent({
+        ...content,
+        gallery: {
+          title: 'Photo Gallery',
+          description: 'A collection of moments and memories captured throughout my journey.',
+          images: []
+        }
+      });
+    }
+  }, [content]);
 
   const handleSave = async () => {
     if (!content) return;
@@ -152,6 +192,26 @@ export default function AdminPage() {
             photo: url
           }
         });
+      } else if (section === 'gallery') {
+        const newImages = [...content.gallery.images];
+        newImages.push(url);
+        setContent({
+          ...content,
+          gallery: {
+            ...content.gallery,
+            images: newImages
+          }
+        });
+      } else if (section === 'projects') {
+        const updatedProjects = [...content.projects];
+        updatedProjects[parseInt(field)] = {
+          ...updatedProjects[parseInt(field)],
+          image: url
+        };
+        setContent({
+          ...content,
+          projects: updatedProjects
+        });
       }
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -168,6 +228,280 @@ export default function AdminPage() {
         ...content.hero,
         images: newImages
       }
+    });
+  };
+
+  const handleAddChangelogItem = () => {
+    if (!content) return;
+    
+    // Validate required fields
+    if (!newChangelogItem.version || !newChangelogItem.title || newChangelogItem.changes.some(change => !change)) {
+      setSaveMessage('Please fill in all fields for the changelog entry');
+      return;
+    }
+
+    // Add the new changelog item to the content
+    const updatedChangelog = [newChangelogItem, ...content.changelog];
+    
+    setContent({
+      ...content,
+      changelog: updatedChangelog
+    });
+    
+    // Reset the form
+    setNewChangelogItem({
+      date: new Date().toISOString().split('T')[0],
+      version: '',
+      title: '',
+      changes: ['']
+    });
+    
+    setSaveMessage('Changelog entry added! Don\'t forget to save changes.');
+  };
+
+  const handleChangelogItemChange = (field: keyof ChangelogItem, value: string) => {
+    setNewChangelogItem({
+      ...newChangelogItem,
+      [field]: value
+    });
+  };
+
+  const handleChangelogChangeText = (index: number, value: string) => {
+    const updatedChanges = [...newChangelogItem.changes];
+    updatedChanges[index] = value;
+    setNewChangelogItem({
+      ...newChangelogItem,
+      changes: updatedChanges
+    });
+  };
+
+  const handleAddChangelogChange = () => {
+    setNewChangelogItem({
+      ...newChangelogItem,
+      changes: [...newChangelogItem.changes, '']
+    });
+  };
+
+  const handleRemoveChangelogChange = (index: number) => {
+    if (newChangelogItem.changes.length <= 1) return;
+    
+    const updatedChanges = [...newChangelogItem.changes];
+    updatedChanges.splice(index, 1);
+    setNewChangelogItem({
+      ...newChangelogItem,
+      changes: updatedChanges
+    });
+  };
+
+  const handleGalleryChange = (field: string, value: string) => {
+    if (!content) return;
+    
+    // Initialize gallery if it doesn't exist
+    if (!content.gallery) {
+      content.gallery = {
+        title: '',
+        description: '',
+        images: []
+      };
+    }
+    
+    setContent({
+      ...content,
+      gallery: {
+        ...content.gallery,
+        [field]: value
+      }
+    });
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    if (!content || !content.gallery) return;
+    
+    const newImages = [...content.gallery.images];
+    newImages.splice(index, 1);
+    setContent({
+      ...content,
+      gallery: {
+        ...content.gallery,
+        images: newImages
+      }
+    });
+  };
+
+  const handleSocialChange = (index: number, field: keyof Social, value: string) => {
+    if (!content) return;
+    const updatedSocials = [...content.socials];
+    updatedSocials[index] = {
+      ...updatedSocials[index],
+      [field]: value
+    };
+    setContent({
+      ...content,
+      socials: updatedSocials
+    });
+  };
+
+  const handleRemoveSocial = (index: number) => {
+    if (!content) return;
+    const updatedSocials = [...content.socials];
+    updatedSocials.splice(index, 1);
+    setContent({
+      ...content,
+      socials: updatedSocials
+    });
+  };
+
+  const handleAddSocial = () => {
+    if (!content) return;
+    setContent({
+      ...content,
+      socials: [...content.socials, 
+        {
+          id: uuidv4(),
+          platform: newSocial.platform,
+          link: newSocial.link,
+          icon: newSocial.platform.toLowerCase()
+        }
+      ]
+    });
+    setNewSocial({
+      platform: '',
+      link: ''
+    });
+  };
+
+  const handleContactChange = (field: keyof Contact, value: string | boolean) => {
+    if (!content) return;
+    setContent({
+      ...content,
+      contact: {
+        ...content.contact,
+        [field]: value
+      }
+    });
+  };
+
+  const handleExperienceChange = (index: number, field: keyof Experience, value: string) => {
+    if (!content) return;
+    const updatedExperiences = [...content.experiences];
+    updatedExperiences[index] = {
+      ...updatedExperiences[index],
+      [field]: value
+    };
+    setContent({
+      ...content,
+      experiences: updatedExperiences
+    });
+  };
+
+  const handleRemoveExperience = (index: number) => {
+    if (!content) return;
+    const updatedExperiences = [...content.experiences];
+    updatedExperiences.splice(index, 1);
+    setContent({
+      ...content,
+      experiences: updatedExperiences
+    });
+  };
+
+  const handleAddExperience = () => {
+    if (!content) return;
+    if (!newExperience.company || !newExperience.position || !newExperience.duration) {
+      setSaveMessage('Please fill in all required fields for the experience');
+      return;
+    }
+
+    setContent({
+      ...content,
+      experiences: [
+        ...content.experiences,
+        {
+          ...newExperience,
+          id: uuidv4()
+        }
+      ]
+    });
+
+    setNewExperience({
+      company: '',
+      position: '',
+      duration: '',
+      description: ''
+    });
+
+    setSaveMessage('Experience added! Don\'t forget to save changes.');
+  };
+
+  const handleProjectChange = (index: number, field: keyof Project, value: string | string[]) => {
+    if (!content) return;
+    const updatedProjects = [...content.projects];
+    updatedProjects[index] = {
+      ...updatedProjects[index],
+      [field]: value
+    };
+    setContent({
+      ...content,
+      projects: updatedProjects
+    });
+  };
+
+  const handleRemoveProject = (index: number) => {
+    if (!content) return;
+    const updatedProjects = [...content.projects];
+    updatedProjects.splice(index, 1);
+    setContent({
+      ...content,
+      projects: updatedProjects
+    });
+  };
+
+  const handleAddProject = () => {
+    if (!content) return;
+    if (!newProject.title || !newProject.description) {
+      setSaveMessage('Please fill in all required fields for the project');
+      return;
+    }
+
+    setContent({
+      ...content,
+      projects: [
+        ...content.projects,
+        {
+          ...newProject,
+          id: uuidv4()
+        }
+      ]
+    });
+
+    setNewProject({
+      title: '',
+      description: '',
+      image: '',
+      tags: [],
+      link: '',
+      github: ''
+    });
+
+    setSaveMessage('Project added! Don\'t forget to save changes.');
+  };
+
+  const handleProjectTagChange = (index: number, tags: string) => {
+    if (!content) return;
+    const updatedProjects = [...content.projects];
+    updatedProjects[index] = {
+      ...updatedProjects[index],
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+    };
+    setContent({
+      ...content,
+      projects: updatedProjects
+    });
+  };
+
+  const handleNewProjectTagChange = (tags: string) => {
+    setNewProject({
+      ...newProject,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
     });
   };
 
@@ -283,6 +617,18 @@ export default function AdminPage() {
                   className={`w-full text-left px-3 py-2 rounded-md ${activeTab === 'contact' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                 >
                   Contact Info
+                </button>
+                <button
+                  onClick={() => setActiveTab('changelog')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${activeTab === 'changelog' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                >
+                  Changelog
+                </button>
+                <button
+                  onClick={() => setActiveTab('gallery')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${activeTab === 'gallery' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                >
+                  Gallery
                 </button>
               </nav>
             </div>
@@ -479,32 +825,770 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Other tabs will be implemented similarly */}
               {activeTab === 'experience' && (
                 <div>
                   <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Experience</h2>
-                  <p className="text-gray-500 dark:text-gray-400">Experience editing will be fully implemented soon.</p>
+                  
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-4">Current Experience</h3>
+                      
+                      {content.experiences.map((exp, index) => (
+                        <div key={exp.id} className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-md shadow-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Company
+                              </label>
+                              <input
+                                type="text"
+                                value={exp.company}
+                                onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Position
+                              </label>
+                              <input
+                                type="text"
+                                value={exp.position}
+                                onChange={(e) => handleExperienceChange(index, 'position', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Duration
+                            </label>
+                            <input
+                              type="text"
+                              value={exp.duration}
+                              onChange={(e) => handleExperienceChange(index, 'duration', e.target.value)}
+                              placeholder="e.g., Jan 2020 - Present"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                          
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={exp.description}
+                              onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                          
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleRemoveExperience(index)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                            >
+                              Remove Experience
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-4">Add New Experience</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Company
+                          </label>
+                          <input
+                            type="text"
+                            value={newExperience.company}
+                            onChange={(e) => setNewExperience({...newExperience, company: e.target.value})}
+                            placeholder="Company name"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Position
+                          </label>
+                          <input
+                            type="text"
+                            value={newExperience.position}
+                            onChange={(e) => setNewExperience({...newExperience, position: e.target.value})}
+                            placeholder="Job title"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Duration
+                        </label>
+                        <input
+                          type="text"
+                          value={newExperience.duration}
+                          onChange={(e) => setNewExperience({...newExperience, duration: e.target.value})}
+                          placeholder="e.g., Jan 2020 - Present"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={newExperience.description}
+                          onChange={(e) => setNewExperience({...newExperience, description: e.target.value})}
+                          placeholder="Describe your responsibilities and achievements..."
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <button
+                          onClick={handleAddExperience}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                        >
+                          Add Experience
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'projects' && (
                 <div>
                   <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Projects</h2>
-                  <p className="text-gray-500 dark:text-gray-400">Project editing will be fully implemented soon.</p>
+                  
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-4">Current Projects</h3>
+                      
+                      {content.projects.map((project, index) => (
+                        <div key={project.id} className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-md shadow-sm">
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Project Title
+                              </label>
+                              <input
+                                type="text"
+                                value={project.title}
+                                onChange={(e) => handleProjectChange(index, 'title', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Description
+                              </label>
+                              <textarea
+                                rows={4}
+                                value={project.description}
+                                onChange={(e) => handleProjectChange(index, 'description', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                  Project Link
+                                </label>
+                                <input
+                                  type="text"
+                                  value={project.link}
+                                  onChange={(e) => handleProjectChange(index, 'link', e.target.value)}
+                                  placeholder="https://..."
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                  GitHub Link
+                                </label>
+                                <input
+                                  type="text"
+                                  value={project.github || ''}
+                                  onChange={(e) => handleProjectChange(index, 'github', e.target.value)}
+                                  placeholder="https://github.com/..."
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Technologies (comma-separated)
+                              </label>
+                              <input
+                                type="text"
+                                value={project.tags.join(', ')}
+                                onChange={(e) => handleProjectTagChange(index, e.target.value)}
+                                placeholder="React, Node.js, MongoDB"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Project Image
+                              </label>
+                              <div className="flex items-center space-x-4">
+                                {project.image && (
+                                  <img
+                                    src={project.image}
+                                    alt={project.title}
+                                    className="h-20 w-20 object-cover rounded-md"
+                                  />
+                                )}
+                                <label className="flex-1">
+                                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400">
+                                    <div className="space-y-1 text-center">
+                                      <FaImage className="mx-auto h-12 w-12 text-gray-400" />
+                                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                                        <span className="text-indigo-600 dark:text-indigo-400">Upload a file</span> or drag and drop
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <input
+                                    type="file"
+                                    className="sr-only"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(e, 'projects', `${index}`)}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => handleRemoveProject(index)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                              >
+                                Remove Project
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-4">Add New Project</h3>
+                      
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Project Title
+                          </label>
+                          <input
+                            type="text"
+                            value={newProject.title}
+                            onChange={(e) => setNewProject({...newProject, title: e.target.value})}
+                            placeholder="Project name"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={newProject.description}
+                            onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                            placeholder="Describe your project..."
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Project Link
+                            </label>
+                            <input
+                              type="text"
+                              value={newProject.link}
+                              onChange={(e) => setNewProject({...newProject, link: e.target.value})}
+                              placeholder="https://..."
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              GitHub Link
+                            </label>
+                            <input
+                              type="text"
+                              value={newProject.github}
+                              onChange={(e) => setNewProject({...newProject, github: e.target.value})}
+                              placeholder="https://github.com/..."
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Technologies (comma-separated)
+                          </label>
+                          <input
+                            type="text"
+                            value={newProject.tags.join(', ')}
+                            onChange={(e) => handleNewProjectTagChange(e.target.value)}
+                            placeholder="React, Node.js, MongoDB"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Project Image
+                          </label>
+                          <div className="flex items-center space-x-4">
+                            {newProject.image && (
+                              <img
+                                src={newProject.image}
+                                alt="New project"
+                                className="h-20 w-20 object-cover rounded-md"
+                              />
+                            )}
+                            <label className="flex-1">
+                              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400">
+                                <div className="space-y-1 text-center">
+                                  <FaImage className="mx-auto h-12 w-12 text-gray-400" />
+                                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    <span className="text-indigo-600 dark:text-indigo-400">Upload a file</span> or drag and drop
+                                  </div>
+                                </div>
+                              </div>
+                              <input
+                                type="file"
+                                className="sr-only"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  handleImageUpload(e, 'projects', 'new').then(url => {
+                                    if (url) {
+                                      setNewProject({...newProject, image: url});
+                                    }
+                                  });
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={handleAddProject}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                          >
+                            Add Project
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'socials' && (
                 <div>
                   <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Social Links</h2>
-                  <p className="text-gray-500 dark:text-gray-400">Social links editing will be fully implemented soon.</p>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md mb-4">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-3">Current Social Links</h3>
+                      
+                      {content?.socials.map((social, index) => (
+                        <div key={social.id} className="flex items-center space-x-2 mb-3 p-3 bg-white dark:bg-gray-800 rounded-md shadow-sm">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Platform
+                              </label>
+                              <input
+                                type="text"
+                                value={social.platform}
+                                onChange={(e) => handleSocialChange(index, 'platform', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Link
+                              </label>
+                              <input
+                                type="text"
+                                value={social.link}
+                                onChange={(e) => handleSocialChange(index, 'link', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                            <div className="flex items-end">
+                              <button
+                                onClick={() => handleRemoveSocial(index)}
+                                className="px-3 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
+                      <h3 className="text-md font-medium text-gray-800 dark:text-white mb-3">Add New Social Link</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Platform
+                          </label>
+                          <select
+                            value={newSocial.platform}
+                            onChange={(e) => setNewSocial({...newSocial, platform: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          >
+                            <option value="">Select Platform</option>
+                            <option value="GitHub">GitHub</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Twitter">Twitter</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Signal">Signal</option>
+                            <option value="Telegram">Telegram</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Link
+                          </label>
+                          <input
+                            type="text"
+                            value={newSocial.link}
+                            onChange={(e) => setNewSocial({...newSocial, link: e.target.value})}
+                            placeholder="https://..."
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            onClick={handleAddSocial}
+                            className="px-3 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                          >
+                            Add Social Link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'contact' && (
                 <div>
                   <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Contact Information</h2>
-                  <p className="text-gray-500 dark:text-gray-400">Contact information editing will be fully implemented soon.</p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={content.contact.email}
+                        onChange={(e) => handleContactChange('email', e.target.value)}
+                        placeholder="your@email.com"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={content.contact.phone}
+                        onChange={(e) => handleContactChange('phone', e.target.value)}
+                        placeholder="+1234567890"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Include country code for international format
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Address
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={content.contact.address}
+                        onChange={(e) => handleContactChange('address', e.target.value)}
+                        placeholder="Your address or location"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md mt-6">
+                      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Contact Display Settings</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="showEmail"
+                            checked={content.contact.showEmail !== false}
+                            onChange={(e) => handleContactChange('showEmail', e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor="showEmail" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Display email address publicly
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="showPhone"
+                            checked={content.contact.showPhone === true}
+                            onChange={(e) => handleContactChange('showPhone', e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor="showPhone" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Display phone number publicly
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="showAddress"
+                            checked={content.contact.showAddress !== false}
+                            onChange={(e) => handleContactChange('showAddress', e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor="showAddress" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Display address publicly
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'changelog' && (
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Manage Changelog</h2>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md mb-6">
+                    <h3 className="text-md font-medium text-gray-800 dark:text-white mb-3">Add New Update</h3>
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date
+                          </label>
+                          <input
+                            type="date"
+                            value={newChangelogItem.date}
+                            onChange={(e) => handleChangelogItemChange('date', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Version
+                          </label>
+                          <input
+                            type="text"
+                            value={newChangelogItem.version}
+                            onChange={(e) => handleChangelogItemChange('version', e.target.value)}
+                            placeholder="e.g. 1.2.0"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Title
+                        </label>
+                        <input
+                          type="text"
+                          value={newChangelogItem.title}
+                          onChange={(e) => handleChangelogItemChange('title', e.target.value)}
+                          placeholder="e.g. New Features & Improvements"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Changes
+                        </label>
+                        
+                        <div className="space-y-2">
+                          {newChangelogItem.changes.map((change, index) => (
+                            <div key={index} className="flex items-center">
+                              <input
+                                type="text"
+                                value={change}
+                                onChange={(e) => handleChangelogChangeText(index, e.target.value)}
+                                placeholder="e.g. Added new feature"
+                                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveChangelogChange(index)}
+                                className="ml-2 p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                disabled={newChangelogItem.changes.length <= 1}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                          
+                          <button
+                            type="button"
+                            onClick={handleAddChangelogChange}
+                            className="mt-2 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          >
+                            Add Change
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={handleAddChangelogItem}
+                        className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                      >
+                        Add to Changelog
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8">
+                    <h3 className="text-md font-medium text-gray-800 dark:text-white mb-3">Current Changelog ({content.changelog.length} items)</h3>
+                    
+                    <div className="space-y-4">
+                      {content.changelog.map((item, index) => (
+                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium text-gray-800 dark:text-white">{item.title}</h4>
+                              <div className="flex items-center mt-1 space-x-3">
+                                <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs px-2 py-1 rounded-full">
+                                  v{item.version}
+                                </span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  {item.date}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <ul className="space-y-1 mt-2 list-disc list-inside text-gray-700 dark:text-gray-300">
+                            {item.changes.map((change, changeIndex) => (
+                              <li key={changeIndex}>{change}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'gallery' && (
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Photo Gallery</h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Gallery Title
+                      </label>
+                      <input
+                        type="text"
+                        value={content.gallery?.title || ''}
+                        onChange={(e) => handleGalleryChange('title', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Gallery Description
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={content.gallery?.description || ''}
+                        onChange={(e) => handleGalleryChange('description', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Gallery Images
+                      </label>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                        {content.gallery?.images?.map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img 
+                              src={image} 
+                              alt={`Gallery ${index + 1}`}
+                              className="h-32 w-full object-cover rounded-md"
+                            />
+                            <button
+                              onClick={() => handleRemoveGalleryImage(index)}
+                              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 text-white rounded-md transition-opacity"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                        
+                        <label className="h-32 w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400">
+                          <FaImage className="text-gray-400 text-2xl mb-2" />
+                          <span className="text-sm text-gray-500 dark:text-gray-400">Add Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={(e) => handleImageUpload(e, 'gallery', 'images')}
+                          />
+                        </label>
+                      </div>
+                      
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Tip: Images in the gallery will appear in a slider and can be viewed in a grid layout by visitors.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

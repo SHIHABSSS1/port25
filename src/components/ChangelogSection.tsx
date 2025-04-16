@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChangelogItem, changelog } from '../data/changelog';
+import { changelog } from '../data/changelog';
 import { motion } from 'framer-motion';
 
 interface ChangelogSectionProps {

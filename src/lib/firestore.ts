@@ -1,8 +1,8 @@
-import { db, storage } from './firebase';
+import { db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { SiteContent } from '../types';
 import { changelog } from '../data/changelog';
+import { uploadImage as cloudinaryUpload } from './cloudinary';
 
 // Default content structure
 export const defaultContent: SiteContent = {
@@ -35,6 +35,11 @@ export const defaultContent: SiteContent = {
       description: 'Led projects involving digital subscription products like Canva and Netflix. Experience in client handling, digital product delivery, and team coordination.'
     }
   ],
+  gallery: {
+    title: 'Photo Gallery',
+    description: 'A collection of moments and memories captured throughout my journey.',
+    images: []
+  },
   projects: [
     {
       id: '1',
@@ -119,23 +124,30 @@ export async function updateSiteContent(content: Partial<SiteContent>): Promise<
     }
     
     const docRef = doc(db, 'site', 'content');
-    await updateDoc(docRef, content);
+    
+    // Check if document exists
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      // If document doesn't exist, create it with initial content
+      await setDoc(docRef, {
+        ...defaultContent,
+        ...content
+      });
+    } else {
+      // If document exists, update it
+      await updateDoc(docRef, content);
+    }
   } catch (error) {
     console.error('Error updating site content:', error);
     throw error;
   }
 }
 
-// Upload image to Firebase Storage
+// Upload image using Cloudinary
 export async function uploadImage(file: File, path: string): Promise<string> {
   try {
-    if (!storage) {
-      throw new Error('Firebase Storage not initialized');
-    }
-    
-    const storageRef = ref(storage, `${path}/${file.name}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
+    const url = await cloudinaryUpload(file, path);
     return url;
   } catch (error) {
     console.error('Error uploading image:', error);
@@ -143,15 +155,24 @@ export async function uploadImage(file: File, path: string): Promise<string> {
   }
 }
 
-// Delete image from Firebase Storage
+// Delete image from Cloudinary
 export async function deleteImage(url: string): Promise<void> {
   try {
-    if (!storage) {
-      throw new Error('Firebase Storage not initialized');
-    }
+    // Extract public_id from the URL
+    const publicId = url.split('/').slice(-2).join('/').split('.')[0];
     
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
+    // Send delete request to API route
+    const response = await fetch('/api/delete-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ public_id: publicId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete image');
+    }
   } catch (error) {
     console.error('Error deleting image:', error);
     throw error;
