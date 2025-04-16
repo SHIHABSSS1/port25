@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { FirebaseError } from 'firebase/app';
 import Link from 'next/link';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -65,6 +67,28 @@ export default function LoginPage() {
     router.push('/admin');
   };
 
+  // DEV ONLY: Set current user as admin
+  const setAsAdmin = async () => {
+    if (!user) {
+      setDebugInfo('You must be logged in to set admin role');
+      return;
+    }
+    
+    try {
+      setDebugInfo('Setting user as admin...');
+      // Update the user document in Firestore with admin role
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        role: 'admin'
+      }, { merge: true });
+      
+      setDebugInfo('Admin role set successfully! Please refresh the page or log in again for changes to take effect.');
+    } catch (error) {
+      console.error('Error setting admin role:', error);
+      setDebugInfo('Error setting admin role. See console for details.');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -83,10 +107,24 @@ export default function LoginPage() {
               <p className="mb-4 text-green-600 dark:text-green-400">You are already logged in.</p>
               <button
                 onClick={goToAdmin}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mb-4"
               >
                 Go to Admin Panel
               </button>
+              
+              {/* DEV ONLY: Button to set current user as admin */}
+              <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Development Tools</p>
+                <button
+                  onClick={setAsAdmin}
+                  className="w-full flex justify-center py-2 px-4 border border-orange-300 rounded-md shadow-sm text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none"
+                >
+                  Set as Admin (Development Only)
+                </button>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  This will set your current user account as an admin in Firestore.
+                </p>
+              </div>
             </div>
           ) : (
             <form className="space-y-6" onSubmit={handleSubmit}>
