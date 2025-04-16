@@ -18,10 +18,19 @@ let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
 if (typeof window !== 'undefined') {
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
+  try {
+    console.log('Initializing Firebase with config:', {
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId
+    });
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    console.log('Firebase initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+  }
 }
 
 export { auth, db, storage }; 
